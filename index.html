@@ -1,0 +1,243 @@
+<html>
+	<head>
+		<title>Snake Multiplayers</title>
+		<style>
+			body{
+				margin:0;
+			}
+		</style>
+		<script src="http://code.jquery.com/jquery-1.11.2.min.js"></script>
+		<script>
+			$(function(){
+				var canvas = document.getElementById("canvas");
+				var ctx = canvas.getContext("2d");
+				var sizeCanvas = 600;
+
+				//Event Listener
+				$("body").keydown(function(e){
+					if(player !== null){
+						switch(e.keyCode){
+						case 37: player.direction = 4;
+								break;
+						case 38: player.direction = 1;
+								break;
+						case 39: player.direction = 3;
+								break;
+						case 40: player.direction = 2;
+								break;
+						default:
+							console.log("Movimiento no permitido");
+						}
+					}
+				});
+
+				
+				//State World
+
+				//Player
+				var player = null;
+				
+
+				//Food
+				var food = null;
+
+				(function init(){
+					canvas.width = canvas.height = sizeCanvas;
+					generateFood();
+					player = new Snake(30,0,"blue",3);
+					//update();
+					setInterval(update, 500)
+				})();
+
+				function update(){
+					checkCollisionFood();
+					moverPlayerHead();
+					pintar(ctx);
+					generateFood();
+				}
+
+				function moverPlayerHead(){
+					player.mover();
+				}
+
+				function pintar(ctx){
+					//console.log("Aqui en Pintar");
+					ctx.fillStyle = "black";
+					ctx.fillRect(0,0,600,600);
+
+					if(food !== null){
+						food.pintar(ctx);	
+					}
+
+					player.pintar(ctx);
+					
+				}
+
+				function checkCollisionFood(){
+					if(food !== null){
+						if(player.cuerpo[0].x >= food.x && player.cuerpo[0].x <= food.x + food.width
+							&& player.cuerpo[0].y >= food.y && player.cuerpo[0].y <= food.y + food.height){
+							food = null;
+							generateFood();
+							player.addToBody();
+						}
+					}
+				}
+
+				function generateFood(){
+					if(food === null){
+						//console.log("Aqui en Food");
+						posX = Math.floor(Math.random()*600);
+						posY = Math.floor(Math.random()*600);
+						posX = posX - (posX % 10)
+						posY = posY - (posY % 10)
+						food = new Food(posX,posY,"red");
+					}
+				}
+
+				/********************/
+				/*********Snake******/
+				/********************/
+				function PiezaCuerpo(x,y){
+					this.x = x;
+					this.y = y;
+					this.width = 10;
+					this.height = 10;
+
+					this.setX = function(actualX){
+						this.x = actualX;
+						if(this.x > canvas.width){
+							this.x = 0;
+						}
+
+						if(this.x < 0){
+							this.x = canvas.width;
+						}
+					}
+
+					this.setY = function(actualY) {
+						this.y = actualY;
+
+						if(this.y > canvas.width){
+							this.y = 0;
+						}
+
+						if(this.y < 0){
+							this.y = canvas.width;
+						}
+					}
+				}
+
+
+				function Snake(x,y,color,direction){
+					this.cuerpo = [new PiezaCuerpo(x,y)];
+					this.color = color;
+					this.direction = direction; //Este Default
+					//var actualDirection = 3; 1 - Norte, 2-Sur, 3-Este, 4-Oeste
+					
+					this.addToBody = function(){
+						this.cuerpo.push(new PiezaCuerpo(-10,-10));
+					}
+
+					this.pintar = function(ctx){
+						
+						for(var i=0;i<this.cuerpo.length;i++){
+							if(i==0){
+								ctx.fillStyle = "green";
+							}else{
+								ctx.fillStyle = this.color;
+							}
+							var pieza = this.cuerpo[i];
+							ctx.fillRect(pieza.x,pieza.y,pieza.width,pieza.height)
+						}
+					}
+
+					//Move
+					this.isInMovement = false;
+					this.mover = function(){
+						if(!this.isInMovement){
+							//alert("Here!!");
+							this.isInMovement = true;
+							var MOVIMIENTO = 10;
+
+							switch(this.direction){
+								case 1: //console.log("Move Up");
+										this.setY(-MOVIMIENTO);
+										break;
+								case 2: //console.log("Move Down");
+								        this.setY(MOVIMIENTO);
+										break;
+								case 3: //console.log("Move Right");
+										this.setX(MOVIMIENTO);
+										break;
+								case 4: //console.log("Move Left");
+								        this.setX(-MOVIMIENTO);
+										break;
+								default: //console.log("Movimiento no permitido");
+							}
+
+						}
+					}
+					
+					this.setX = function(actualX){
+						lastPosition = null;
+						for(var i=0;i<this.cuerpo.length;i++){
+							//console.log("Estoy dentro");
+							pieza = this.cuerpo[i];
+							if(i==0){
+								lastPosition = [pieza.x,pieza.y];
+								pieza.setX(pieza.x + actualX);
+							}else{
+								tmpPosition = [pieza.x,pieza.y];
+								pieza.setX(lastPosition[0]);
+								pieza.setY(lastPosition[1]);
+								lastPosition = tmpPosition;
+							}
+						}
+						lastPosition = null;
+						//console.log("Ya sali");
+						this.isInMovement = false;
+					}
+
+					this.setY = function(actualY){
+						lastPosition = null;
+						for(var i=0;i<this.cuerpo.length;i++){
+							pieza = this.cuerpo[i];
+							if(i==0){
+								lastPosition = [pieza.x,pieza.y];
+								pieza.setY(pieza.y + actualY);
+							}else{
+								tmpPosition = [pieza.x,pieza.y];
+								pieza.setX(lastPosition[0]);
+								pieza.setY(lastPosition[1]);
+								lastPosition = tmpPosition;
+							}
+						}
+						this.isInMovement = false;
+					}
+				}
+
+				/*******************/
+				/********Food*******/
+				/*******************/
+				function Food(x,y,color){
+					this.x = x;
+					this.y = y;
+					this.color = color;	
+					this.width = 10;
+					this.height = 10;
+
+					this.pintar = function(ctx){
+						ctx.fillStyle = this.color;
+						ctx.fillRect(this.x,this.y,this.width,this.height);
+					}
+				}
+
+
+			});
+		</script>
+	</head>
+	<body>
+		<canvas id="canvas">Tu navegador no soporta canvas</canvas>
+	</body>
+</html>
